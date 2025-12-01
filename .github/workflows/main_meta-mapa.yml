@@ -59,5 +59,6 @@ jobs:
         with:
           app-name: 'Meta-Mapa'
           slot-name: 'Production'
-          package: '*.jar'
+          package: 'target/*.jar'
+
           

@@ -31,7 +31,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,6 +59,7 @@ jobs:
         with:
           app-name: 'Meta-Mapa'
           slot-name: 'Production'
-          package: 'target/*.jar'
+          package: '*.jar'
 
           
+

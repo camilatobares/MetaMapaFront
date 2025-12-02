@@ -57,6 +57,8 @@ public class SecurityConfig {
 						//RUTAS DE ADMIN (Requieren ser ADMIN)
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 
+						.requestMatchers("/actuator/**").permitAll()
+
 						// OTRAS RUTAS
 						.anyRequest().authenticated() // Bloquea todo lo demás
 				)

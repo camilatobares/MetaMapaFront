@@ -8,7 +8,76 @@
         <div class="card-body" id="login-form-container">
             <h5 class="card-title text-primary fw-bold text-center mb-4">Iniciar Sesión</h5>
 
-            <div th:if="${param.error}" class="alert alert-danger">Usuario o contraseña inválidos.</div>
+            <div th:if="${param.error}" class="mb-3">
+
+                <div th:if="${session['SPRING_SECURITY_LAST_EXCEPTION'] != null
+                              and session['SPRING_SECURITY_LAST_EXCEPTION'].message != null
+                              and #strings.startsWith(session['SPRING_SECURITY_LAST_EXCEPTION'].message, 'BAN:')}"
+                     class="alert alert-warning border-warning shadow-sm" role="alert">
+
+                    <div class="d-flex align-items-center text-danger fw-bold mb-2">
+                        <i class="bi bi-hand-index-thumb-fill me-2 fs-5"></i>
+                        <span>Demasiados intentos fallidos.</span>
+                    </div>
+                    <p class="mb-0 text-dark">
+                        Por seguridad, debes esperar:
+                        <span id="countdown-timer" class="fw-bold fs-5 text-primary">--</span> segundos.
+                    </p>
+
+                    <script th:inline="javascript">
+                        document.addEventListener('DOMContentLoaded', () => {
+                            // Obtenemos el mensaje de la excepción (ej: "BAN:60")
+                            const msg = /*[[${session.SPRING_SECURITY_LAST_EXCEPTION.message}]]*/ 'BAN:60';
+
+                            // Extraemos el número de segundos
+                            let secondsLeft = parseInt(msg.split(':')[1]) || 60;
+
+                            const timerSpan = document.getElementById('countdown-timer');
+                            const submitBtn = document.querySelector('button[type="submit"]');
+                            const inputs = document.querySelectorAll('input');
+
+                            // 1. Bloquear el formulario inmediatamente
+                            if(submitBtn) {
+                                submitBtn.disabled = true;
+                                submitBtn.innerHTML = '<i class="bi bi-lock-fill"></i> Bloqueado';
+                            }
+                            inputs.forEach(i => i.disabled = true);
+
+                            timerSpan.innerText = secondsLeft;
+
+                            // 2. Iniciar cuenta regresiva
+                            const interval = setInterval(() => {
+                                secondsLeft--;
+                                timerSpan.innerText = secondsLeft;
+
+                                if (secondsLeft <= 0) {
+                                    clearInterval(interval);
+                                    // 3. Desbloquear cuando termine el tiempo
+                                    if(submitBtn) {
+                                        submitBtn.disabled = false;
+                                        submitBtn.innerHTML = 'Iniciar Sesión';
+                                        submitBtn.classList.remove('btn-primary');
+                                        submitBtn.classList.add('btn-success');
+                                    }
+                                    inputs.forEach(i => i.disabled = false);
+
+                                    // Mensaje de éxito
+                                    timerSpan.parentElement.innerHTML = "<span class='text-success fw-bold'><i class='bi bi-unlock-fill'></i> ¡Ya puedes intentar nuevamente!</span>";
+                                }
+                            }, 1000);
+                        });
+                    </script>
+                </div>
+
+                <div th:unless="${session['SPRING_SECURITY_LAST_EXCEPTION'] != null
+                                  and session['SPRING_SECURITY_LAST_EXCEPTION'].message != null
+                                  and #strings.startsWith(session['SPRING_SECURITY_LAST_EXCEPTION'].message, 'BAN:')}"
+                     class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span th:text="${session['SPRING_SECURITY_LAST_EXCEPTION'] != null ? session['SPRING_SECURITY_LAST_EXCEPTION'].message : 'Credenciales inválidas'}">Error</span>
+                </div>
+
+            </div>
             <div th:if="${param.logout}" class="alert alert-success">Has cerrado sesión.</div>
             <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
 

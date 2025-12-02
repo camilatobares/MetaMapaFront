@@ -24,64 +24,48 @@ public class AuthService {
 	private final String authServiceUrl;
 
 	@Autowired
-	public AuthService(
-																	 ApiClientService apiClientService,
-																	 @Value("${auth.service.url}") String authServiceUrl) {
+	public AuthService(ApiClientService apiClientService, @Value("${auth.service.url}") String authServiceUrl) {
 		this.webClient = WebClient.builder().build();
 		this.apiClientService = apiClientService;
 		this.authServiceUrl = authServiceUrl;
 	}
 
-	/**
-	 * Llama al endpoint de login del backend.
-	 * Esta es la llamada que usa CustomAuthProvider.
-	 */
 	public AuthResponseDTO login(String username, String password) {
 		try {
-			AuthResponseDTO response = webClient
+			return webClient
 					.post()
 					.uri(authServiceUrl + "/login")
-					.bodyValue(Map.of(
-							"email", username,
-							"password", password
-					))
+					.bodyValue(Map.of("email", username, "password", password))
 					.retrieve()
 					.bodyToMono(AuthResponseDTO.class)
 					.block();
-			return response;
 		} catch (WebClientResponseException e) {
-			log.error(e.getMessage());
-			if (e.getStatusCode() == HttpStatus.NOT_FOUND || e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+			log.error("Error en login: " + e.getMessage());
+
+			// SOLO si el usuario no existe (404) devolvemos null.
+			// Si es 401 (Pass incorrecta), 403 (Bloqueado) o 429 (Rate Limit),
+			// LANZAMOS la excepción para que el CustomAuthProvider pueda leer los headers.
+			if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
 				return null;
 			}
-			// Otros errores HTTP
-			throw new RuntimeException("Error en el servicio de autenticación: " + e.getMessage(), e);
+
+			// Envolvemos la excepción original
+			throw new RuntimeException(e);
 		} catch (Exception e) {
-			throw new RuntimeException("Error de conexión con el servicio de autenticación: " + e.getMessage(), e);
+			throw new RuntimeException("Error de conexión", e);
 		}
 	}
 
-	/**
-	 * Llama al endpoint que devuelve roles y permisos.
-	 * Esta es la llamada que usa CustomAuthProvider.
-	 */
+	// ... (El resto de los métodos déjalos igual: getRolesPermisos, registrar, etc.) ...
 	public RolesPermisosDTO getRolesPermisos(String accessToken) {
 		try {
-			RolesPermisosDTO response = apiClientService.getWithAuth(
-					authServiceUrl + "/user/roles-permisos",
-					accessToken,
-					RolesPermisosDTO.class
-			);
-			return response;
+			return apiClientService.getWithAuth(authServiceUrl + "/user/roles-permisos", accessToken, RolesPermisosDTO.class);
 		} catch (Exception e) {
 			log.error(e.getMessage());
-			throw new RuntimeException("Error al obtener roles y permisos: " + e.getMessage(), e);
+			throw new RuntimeException("Error al obtener roles y permisos", e);
 		}
 	}
 
-	/**
-	 * Llama al endpoint de registro del backend.
-	 */
 	public void registrar(RegistroInputDTO dto) {
 		try {
 			Map<String, Object> requestBody = Map.of(
@@ -90,33 +74,19 @@ public class AuthService {
 					"nombre", dto.getNombre(),
 					"apellido", dto.getApellido(),
 					"fechaDeNacimiento", dto.getFechaNacimiento().toString(),
-					"admin", false // Los usuarios que se registran no son admins
+					"admin", false
 			);
-
-			webClient
-					.post()
-					.uri(authServiceUrl + "/register")
-					.bodyValue(requestBody)
-					.retrieve()
-					.bodyToMono(Void.class)
-					.block();
-
+			webClient.post().uri(authServiceUrl + "/register").bodyValue(requestBody).retrieve().bodyToMono(Void.class).block();
 		} catch (WebClientResponseException e) {
-			log.error("Error al registrar: " + e.getResponseBodyAsString());
-
 			if (e.getStatusCode() == HttpStatus.CONFLICT) {
 				throw new ValidationException("El email '" + dto.getEmail() + "' ya está registrado.");
 			}
-
-			throw new RuntimeException("Error en el servicio de registro: " + e.getMessage(), e);
+			throw new RuntimeException("Error en registro: " + e.getMessage(), e);
 		} catch (Exception e) {
-			throw new RuntimeException("Error de conexión con el servicio de registro: " + e.getMessage(), e);
+			throw new RuntimeException("Error de conexión en registro", e);
 		}
 	}
 
-	/**
-	 * Llama al endpoint de actualización de perfil del backend.
-	 */
 	public AuthResponseDTO actualizarPerfil(RegistroInputDTO dto) {
 		try {
 			Map<String, Object> requestBody = Map.of(
@@ -125,22 +95,9 @@ public class AuthService {
 					"fechaDeNacimiento", dto.getFechaNacimiento().toString(),
 					"email", dto.getEmail()
 			);
-
-			String url = authServiceUrl + "/user/profile";
-
-			AuthResponseDTO response = apiClientService.put(
-					url,
-					requestBody,
-					AuthResponseDTO.class
-			);
-			return response;
-
-		} catch (WebClientResponseException e) {
-			log.error("Error al actualizar perfil: " + e.getResponseBodyAsString());
-			throw new RuntimeException("Error al actualizar perfil: " + e.getMessage(), e);
+			return apiClientService.put(authServiceUrl + "/user/profile", requestBody, AuthResponseDTO.class);
 		} catch (Exception e) {
-			throw new RuntimeException("Error de conexión al actualizar perfil: " + e.getMessage(), e);
+			throw new RuntimeException("Error al actualizar perfil", e);
 		}
 	}
-
 }

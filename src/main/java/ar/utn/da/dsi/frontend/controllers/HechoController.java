@@ -1,5 +1,6 @@
 package ar.utn.da.dsi.frontend.controllers;
 
+import ar.utn.da.dsi.frontend.client.dto.HechoDTO;
 import ar.utn.da.dsi.frontend.client.dto.input.HechoInputDTO;
 import ar.utn.da.dsi.frontend.services.hechos.HechoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -77,8 +78,29 @@ public class HechoController {
   @GetMapping("/{id}/editar")
   public String mostrarFormularioEditarHecho(@PathVariable("id") Long id, Model model) {
 
+    HechoDTO hechoCheck = hechoService.buscarHechoEnDinamica(id);
+
+    if (hechoCheck == null) {
+      throw new RuntimeException("No se encontró el hecho en Dinámica");
+    }
+
+    // EXTRAER DATOS IMPORTANTES
+    String estado = hechoCheck.getEstado();
+    boolean tienePendiente = hechoCheck.isTieneEdicionPendiente();
+
+    // VALIDACIÓN
+    boolean puedeEditar = "ACEPTADO".equalsIgnoreCase(estado) && !tienePendiente;
+
+    if (!puedeEditar) {
+      model.addAttribute("error",
+          "Este hecho no puede editarse porque no está aceptado o tiene una edición pendiente.");
+      return "redirect:/hechos/" + id;
+    }
+
+    model.addAttribute("tieneEdicionPendiente", tienePendiente);
+
     if (!model.containsAttribute("hechoDTO")) {
-      model.addAttribute("hechoDTO", hechoService.getHechoInputDTOporId(id));
+      model.addAttribute("hechoDTO", hechoService.buscarHechoInputEnDinamica(id));
     }
 
     HechoInputDTO hechoDTO = (HechoInputDTO) model.getAttribute("hechoDTO");
@@ -94,6 +116,8 @@ public class HechoController {
 
     return "hecho-form";
   }
+
+
 
   @PostMapping("/{id}/editar")
   public String editarHecho(

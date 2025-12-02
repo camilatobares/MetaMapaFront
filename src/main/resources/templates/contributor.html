@@ -108,7 +108,7 @@
                 }
                 list.forEach(r => {
                     const st = r.estado ? r.estado.toUpperCase() : 'PENDIENTE';
-                    const badgeClass = st === 'PENDIENTE' ? 'bg-warning' : (st.includes('ACEPT') ? 'bg-success' : 'bg-danger');
+                    const badgeClass = st === 'PENDIENTE' ? 'bg-warning' : ((st.includes('ACEPT') || st.includes('APROB'))? 'bg-success' : 'bg-danger');
 
                     reqTable.innerHTML += `
                         <tr>
@@ -134,7 +134,7 @@
                     const estadoUpper = r.estado ? r.estado.toUpperCase() : 'PENDIENTE';
                     let statusMatch = true;
                     if (s) {
-                        if (s === 'ACEPTADO' || s === 'APROBADA') statusMatch = estadoUpper.includes('ACEPT');
+                        if (s === 'ACEPTADO' || s === 'APROBADA') statusMatch = (estadoUpper.includes('ACEPT') || estadoUpper.includes('APROB'));
                         else statusMatch = estadoUpper === s;
                     }
                     return (!t || r.tipo === t) && statusMatch;

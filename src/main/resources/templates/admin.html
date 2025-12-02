@@ -391,20 +391,40 @@
                                     // --- 1. NUEVO HECHO ---
                                     if (tipo === 'Nuevo Hecho') {
                                         const fecha = data.fechaAcontecimiento ? new Date(data.fechaAcontecimiento).toLocaleString() : '-';
-                                        const imgHtml = data.contenidoMultimedia ?
-                                            `<div class="mb-3 text-center p-2 bg-light rounded border"><img src="${data.contenidoMultimedia}" class="img-fluid rounded" style="max-height: 300px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"><div style="display:none" class="text-muted small mt-1"><i class="bi bi-file-earmark"></i> ${data.contenidoMultimedia}</div></div>`
+
+                                        // --- CORRECCIÓN DE URL DE IMAGEN ---
+                                        let imgUrl = data.contenidoMultimedia;
+                                        if (imgUrl && !imgUrl.startsWith('http')) {
+                                            // Apuntamos al puerto 8082 donde configuramos el ResourceHandler
+                                            imgUrl = `http://localhost:8082/uploads/${imgUrl}`;
+                                        }
+                                        // -----------------------------------
+
+                                        const imgHtml = imgUrl ?
+                                            `<div class="mb-3 text-center p-2 bg-light rounded border">
+                                                <img src="${imgUrl}" class="img-fluid rounded" style="max-height: 300px;"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                                                <div style="display:none" class="text-muted small mt-1">
+                                                    <i class="bi bi-file-earmark"></i> Error al cargar imagen
+                                                </div>
+                                            </div>`
                                             : `<div class="alert alert-secondary py-2 small text-center">No se adjuntó contenido multimedia.</div>`;
 
                                         html = `
-                                    <div class="alert alert-info border-0 shadow-sm mb-3">Propuesta de creación</div>
-                                    <h4 class="text-primary fw-bold mb-3">${data.titulo || 'Sin título'}</h4>
-                                    <p class="lead fs-6">${data.descripcion || 'Sin descripción'}</p>
-                                    ${imgHtml}
-                                    <div class="row g-2 small text-muted mb-3">
-                                        <div class="col-6"><strong>Categoría:</strong> <span class="badge bg-secondary">${data.categoria}</span></div>
-                                        <div class="col-6"><strong>Fecha:</strong> ${fecha}</div>
-                                    </div>
-                                    <div class="card border-0"><div class="card-header bg-white fw-bold small text-muted">Ubicación</div><div class="card-body p-0"><div id="modal-map-container" style="height: 250px; width: 100%; background: #eee; border-radius: 0 0 8px 8px;"></div></div></div>`;
+                                           <div class="alert alert-info border-0 shadow-sm mb-3">Propuesta de creación</div>
+                                           <h4 class="text-primary fw-bold mb-3">${data.titulo || 'Sin título'}</h4>
+                                           <p class="lead fs-6">${data.descripcion || 'Sin descripción'}</p>
+                                           ${imgHtml}
+                                           <div class="row g-2 small text-muted mb-3">
+                                               <div class="col-6"><strong>Categoría:</strong> <span class="badge bg-secondary">${data.categoria}</span></div>
+                                               <div class="col-6"><strong>Fecha:</strong> ${fecha}</div>
+                                           </div>
+                                           <div class="card border-0">
+                                               <div class="card-header bg-white fw-bold small text-muted">Ubicación</div>
+                                               <div class="card-body p-0">
+                                                   <div id="modal-map-container" style="height: 250px; width: 100%; background: #eee; border-radius: 0 0 8px 8px;"></div>
+                                               </div>
+                                           </div>`;
 
                                         if(data.latitud && data.longitud) {
                                             mapsToInit.push({ id: 'modal-map-container', lat: data.latitud, lng: data.longitud, popup: 'Ubicación' });
@@ -413,7 +433,7 @@
 
                                     // --- 2. ELIMINACIÓN ---
                                     else if (tipo === 'Eliminación') {
-                                        html = `<div class="alert alert-danger border-0 shadow-sm mb-3">Solicitud de Baja</div><p>Se solicita eliminar: <strong>${data.tituloDelHechoAEliminar}</strong></p><div class="card border-danger"><div class="card-body text-danger p-3"><strong>Motivo:</strong><br> ${data.motivo}</div></div>`;
+                                        html = `<div class="alert alert-danger border-0 shadow-sm mb-3">Solicitud de Baja</div><p>Se solicita eliminar: <strong>${data.nombreHecho}</strong></p><div class="card border-danger"><div class="card-body text-danger p-3"><strong>Motivo:</strong><br> ${data.motivo}</div></div>`;
                                     }
 
                                     // --- 3. EDICIÓN (Lógica Avanzada) ---
@@ -422,14 +442,21 @@
                                         const prop = data.propuesta || {};
                                         const isDiff = (a, b) => a !== b ? 'text-success fw-bold' : '';
 
+                                        // FORMATEO DE FECHAS
+                                        const formatF = (dateStr) => {
+                                            if (!dateStr) return '-';
+                                            return new Date(dateStr).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                        };
+
+                                        const fechaO = formatF(orig.fechaAcontecimiento);
+                                        const fechaP = formatF(prop.fechaAcontecimientoPropuesta);
+
                                         // A) Comparación de ubicación
-                                        // Aseguramos que sean números para comparar
                                         const latO = parseFloat(orig.latitud); const lngO = parseFloat(orig.longitud);
                                         const latP = parseFloat(prop.latitudPropuesta); const lngP = parseFloat(prop.longitudPropuesta);
-
                                         const hasLocationChange = (latO !== latP) || (lngO !== lngP);
 
-                                        // B) Imágenes (Original y Propuesta)
+                                        // B) Imágenes
                                         const imgOrig = orig.contenidoMultimedia ?
                                             `<div class="mt-2"><small class="fw-bold text-muted">Multimedia Actual:</small><br><img src="${orig.contenidoMultimedia}" class="img-fluid rounded shadow-sm" style="max-height: 150px;" onerror="this.style.display='none';"></div>`
                                             : `<div class="mt-2 text-muted small">Sin multimedia original.</div>`;
@@ -438,7 +465,7 @@
                                             `<div class="mt-2"><small class="fw-bold text-success">Nueva Imagen:</small><br><img src="${prop.contenidoMultimediaPropuesto}" class="img-fluid rounded shadow-sm" style="max-height: 150px;" onerror="this.style.display='none';"></div>`
                                             : `<div class="mt-2 text-muted small fst-italic border-top pt-1">Sin cambios en multimedia.</div>`;
 
-                                        // C) HTML de comparación de campos
+                                        // C) HTML de comparación (CON FECHA)
                                         html = `
                                     <div class="alert alert-warning border-0 shadow-sm mb-3">Propuesta de Edición</div>
                                     <div class="row g-0 border rounded mb-3">
@@ -447,6 +474,7 @@
                                             <div class="mb-2"><small class="fw-bold">Título:</small><div>${orig.titulo || '-'}</div></div>
                                             <div class="mb-2"><small class="fw-bold">Descripción:</small><div class="small">${orig.descripcion || '-'}</div></div>
                                             <div class="mb-2"><small class="fw-bold">Categoría:</small><div class="small">${orig.categoria || '-'}</div></div>
+                                            <div class="mb-2"><small class="fw-bold">Fecha:</small><div class="small">${fechaO}</div></div>
                                             ${imgOrig}
                                         </div>
                                         <div class="col-6 bg-white p-3">
@@ -454,32 +482,36 @@
                                             <div class="mb-2"><small class="fw-bold">Título:</small><div class="${isDiff(orig.titulo, prop.tituloPropuesto)}">${prop.tituloPropuesto || orig.titulo}</div></div>
                                             <div class="mb-2"><small class="fw-bold">Descripción:</small><div class="${isDiff(orig.descripcion, prop.descripcionPropuesta)} small">${prop.descripcionPropuesta || orig.descripcion}</div></div>
                                             <div class="mb-2"><small class="fw-bold">Categoría:</small><div class="${isDiff(orig.categoria, prop.categoriaPropuestaNombre)} small">${prop.categoriaPropuestaNombre || orig.categoria}</div></div>
+                                            <div class="mb-2"><small class="fw-bold">Fecha:</small><div class="${isDiff(fechaO, fechaP)} small">${fechaP}</div></div>
                                             ${imgProp}
                                         </div>
                                     </div>`;
 
-                                        // D) Lógica de Mapas (Uno o Dos)
+                                        // D) Lógica de Mapas (CON TÍTULOS)
                                         if (hasLocationChange) {
                                             html += `
                                         <div class="row g-3">
-                                            <div class="col-12">
-                                                <div class="card border-danger"><div class="card-header bg-danger text-white small fw-bold">Ubicación Original</div>
-                                                <div class="card-body p-0"><div id="map-edicion-original" style="height: 200px; width: 100%;"></div></div></div>
+                                            <div class="col-6">
+                                                <div class="card border-danger h-100">
+                                                    <div class="card-header bg-danger text-white small fw-bold text-center">Ubicación Original</div>
+                                                    <div class="card-body p-0"><div id="map-edicion-original" style="height: 200px; width: 100%;"></div></div>
+                                                </div>
                                             </div>
-                                            <div class="col-12">
-                                                <div class="card border-success"><div class="card-header bg-success text-white small fw-bold">Ubicación Propuesta Editada</div>
-                                                <div class="card-body p-0"><div id="map-edicion-propuesta" style="height: 200px; width: 100%;"></div></div></div>
+                                            <div class="col-6">
+                                                <div class="card border-success h-100">
+                                                    <div class="card-header bg-success text-white small fw-bold text-center">Ubicación Propuesta</div>
+                                                    <div class="card-body p-0"><div id="map-edicion-propuesta" style="height: 200px; width: 100%;"></div></div>
+                                                </div>
                                             </div>
                                         </div>`;
 
-                                            // Agregamos ambos mapas a la cola de inicialización
                                             if(!isNaN(latO)) mapsToInit.push({ id: 'map-edicion-original', lat: latO, lng: lngO, popup: 'Original' });
                                             if(!isNaN(latP)) mapsToInit.push({ id: 'map-edicion-propuesta', lat: latP, lng: lngP, popup: 'Propuesta' });
 
                                         } else {
                                             html += `
-                                        <div class="alert alert-secondary d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> Sin modificaciones en la ubicación del hecho original en la nueva propuesta.</div>
-                                        <div class="card border-0"><div class="card-header bg-white fw-bold small text-muted">Ubicación (Sin cambios)</div>
+                                        <div class="alert alert-secondary d-flex align-items-center py-2 mt-3"><i class="bi bi-geo-alt me-2"></i> Sin cambios en la ubicación.</div>
+                                        <div class="card border-0"><div class="card-header bg-white fw-bold small text-muted">Ubicación Actual</div>
                                         <div class="card-body p-0"><div id="map-edicion-unico" style="height: 200px; width: 100%;"></div></div></div>`;
 
                                             if(!isNaN(latO)) mapsToInit.push({ id: 'map-edicion-unico', lat: latO, lng: lngO, popup: 'Ubicación Actual' });

@@ -5,6 +5,12 @@
 
 <main class="container-fluid p-4 animate__animated animate__fadeIn" id="main-content">
     <h3 class="fw-bold mb-4 text-primary" th:text="${titulo}"></h3>
+    <div id="alert-placeholder">
+        <div th:if="${error}" class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <span th:text="${error}"></span>
+        </div>
+    </div>
 
     <div class="card shadow-lg border-0 rounded-3">
         <div class="card-body p-4">
@@ -18,14 +24,19 @@
             </div>
 
             <form th:object="${solicitudDTO}" th:action="@{/solicitudes/crear}" method="post">
-<!--                llenarlo con el id del hecho-->
                 <input type="hidden" name="id" th:value="${hecho.id}" />
 
-                <div class.mb-3>
+                <div class="mb-3">
                     <label for="motivo" class="form-label">Motivo de la solicitud</label>
-                    <textarea id="motivo" class="form-control" rows="8" th:field="*{motivo}" required
-                              placeholder="Por favor, describe detalladamente por qué este hecho debería ser eliminado (mínimo 500 caracteres)."></textarea>
 
+                    <textarea id="motivo"
+                              class="form-control"
+                              rows="8"
+                              th:field="*{motivo}"
+                              required
+                              maxlength="2000"
+                              placeholder="Por favor, describe detalladamente por qué este hecho debería ser eliminado (mínimo 500 caracteres)."></textarea>
+                    <p id="char-counter" class="mt-1 text-muted small">0 / 2000 caracteres</p>
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -44,6 +55,25 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             renderSidebar('index');
+
+            const textarea = document.getElementById("motivo");
+            const counter = document.getElementById("char-counter");
+
+            function updateCounter() {
+                const length = textarea.value.length;
+                counter.textContent = `${length} / 2000 caracteres`;
+
+                if (length < 500) {
+                    counter.classList.remove("text-success");
+                    counter.classList.add("text-danger");
+                } else {
+                    counter.classList.remove("text-danger");
+                    counter.classList.add("text-success");
+                }
+            }
+
+            textarea.addEventListener("input", updateCounter);
+            updateCounter();
         });
     </script>
 </div>

@@ -217,21 +217,21 @@ public class HechoApiService {
     String url = agregadorApiUrl + "/hechos/" + id;
 
     try {
-      return apiClientService.executeWithToken(accessToken ->
-          webClient.get()
-              .uri(url)
-              .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-              .retrieve()
-              .bodyToMono(new ParameterizedTypeReference<ApiResponse<HechoDTO>>() {})
-              .flatMap(response -> {
-                // Si datos es null, retornamos un Mono vacío (que .block() convierte en null de forma segura)
-                if (response.getDatos() == null) {
-                  return Mono.empty();
-                }
-                return Mono.just(response.getDatos());
-              })
-              .block()
-      );
+      // CORRECCIÓN: Se elimina el executeWithToken y el Header.
+      // La llamada se hace directamente a webClient (no autenticada) pero
+      // se mantiene la lógica para desempaquetar la respuesta ApiResponse.
+      return webClient.get()
+          .uri(url)
+          .retrieve()
+          .bodyToMono(new ParameterizedTypeReference<ApiResponse<HechoDTO>>() {})
+          .flatMap(response -> {
+            // Si 'datos' es null (ej: error 404/500 con wrapper), se retorna Mono.empty() (que .block() convierte en null).
+            if (response.getDatos() == null) {
+              return Mono.empty();
+            }
+            return Mono.just(response.getDatos());
+          })
+          .block();
     } catch (Exception e) {
       System.out.println("Error al buscar hecho por ID " + id + ": " + e.getMessage());
       return null;
@@ -312,11 +312,14 @@ public class HechoApiService {
   public HechoDTO actualizarHecho(Long id, HechoInputDTO dto, @Nullable MultipartFile archivo) {
     String url = dinamicaUrl + "/hechos/" + id + "/editar"; // Endpoint: PUT /hechos/{id}/editar
 
-    // Mapeamos HechoInputDTO a la estructura necesaria para EdicionInputDTO (solo los campos propuestos)
     Map<String, Object> edicionData = new LinkedHashMap<>();
     edicionData.put("tituloPropuesto", dto.getTitulo());
     edicionData.put("descripcionPropuesta", dto.getDescripcion());
-    edicionData.put("categoriaPropuesta", Map.of("nombre", dto.getCategoria())); // El backend espera un objeto Categoria
+
+    if (dto.getCategoria() != null) {
+      edicionData.put("categoriaPropuesta", dto.getCategoria());
+    }
+
     edicionData.put("latitudPropuesta", dto.getLatitud());
     edicionData.put("longitudPropuesta", dto.getLongitud());
     edicionData.put("fechaAcontecimientoPropuesta", dto.getFechaAcontecimiento());
@@ -380,10 +383,6 @@ public class HechoApiService {
             .uri(url)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
             .retrieve()
-            // DESEMPAQUETAMOS EL ApiResponse IGUAL QUE EN 'getHechosPorUsuario'
-            // Usamos HechoBackendDinamicaDTO intermedio si la estructura es anidada (categoria objeto),
-            // o HechoDTO si ya lo aplanaste en el backend.
-            // Como vi en tu JSON que categoria es un String ("Urgencias"), podemos usar HechoDTO directo si coinciden los campos.
             .bodyToMono(new ParameterizedTypeReference<ApiResponse<List<HechoDTO>>>() {})
             .map(response -> response.getDatos() != null ? response.getDatos() : List.<HechoDTO>of())
             .block()

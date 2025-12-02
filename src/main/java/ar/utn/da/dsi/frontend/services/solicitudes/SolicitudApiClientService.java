@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import java.util.List;
 
 @Service
@@ -64,19 +65,40 @@ public class SolicitudApiClientService {
 	}
 
 	public SolicitudEliminacionOutputDTO crear(SolicitudEliminacionInputDTO dto) {
-		// También aplicamos la corrección aquí por seguridad, ya que el controller devuelve ApiResponse
-		SolicitudEliminacionOutputDTO s = apiClientService.executeWithToken(accessToken ->
-				apiClientService.getWebClient().post()
-						.uri(solicitudesApiUrl)
-						.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-						.bodyValue(dto)
-						.retrieve()
-						.bodyToMono(new ParameterizedTypeReference<ApiResponse<SolicitudEliminacionOutputDTO>>() {})
-						.map(response -> response.getDatos())
-						.block()
-		);
-		System.out.println("s = " + s);
-		return s;
+
+		// 1. Obtener el token de la sesión (será null/blank si es anónimo)
+		String accessToken = apiClientService.getAccessTokenFromSession();
+
+		// 2. Iniciar la construcción de la solicitud (POST)
+		WebClient.RequestBodyUriSpec requestBuilder = apiClientService.getWebClient().post();
+
+		// 3. Obtener el objeto que permite añadir headers y cuerpo.
+		// Usamos una variable final local para que pueda ser capturada por el bloque de mapeo.
+		WebClient.RequestHeadersSpec<?> requestHeadersSpec = requestBuilder
+				.uri(solicitudesApiUrl)
+				.bodyValue(dto);
+
+		// 4. Aplicar el header de autenticación SOLO si existe un token
+		if (accessToken != null && !accessToken.isBlank()) {
+			// Al llamar a header sobre requestHeadersSpec, obtenemos una nueva especificación con el header añadido.
+			// PERO debemos forzar el tipo a WebClient.RequestHeadersSpec para evitar errores de tipo genérico en el compilador.
+			requestHeadersSpec = requestHeadersSpec.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+		}
+
+		// 5. Ejecutar la llamada (con o sin token) y manejar la respuesta
+		try {
+			// Usamos ParameterizedTypeReference para desempaquetar el ApiResponse<SolicitudEliminacionOutputDTO>
+			SolicitudEliminacionOutputDTO s = requestHeadersSpec
+					.retrieve()
+					.bodyToMono(new ParameterizedTypeReference<ApiResponse<SolicitudEliminacionOutputDTO>>() {})
+					.map(response -> response.getDatos())
+					.block();
+
+			return s;
+		} catch (Exception e) {
+			// Capturamos cualquier error (incluidos los de comunicación HTTP/WebClient)
+			throw new RuntimeException("Error al crear la solicitud en el backend.", e);
+		}
 	}
 
 	public SolicitudEliminacionOutputDTO aceptar(Integer id, String visualizadorId) {

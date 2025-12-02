@@ -57,4 +57,7 @@ public class HechoDTO {
 
 	@JsonProperty("nombreOrigen")
 	private String nombreOrigen;
+
+	@JsonProperty("tieneEdicionPendiente")
+	private boolean tieneEdicionPendiente;
 }

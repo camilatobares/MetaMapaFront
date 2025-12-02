@@ -28,8 +28,8 @@ public class SolicitudService {
 	}
 
 	public SolicitudEliminacionOutputDTO crear(SolicitudEliminacionInputDTO dto) {
+		System.out.println(dto);
 		validarSolicitud(dto);
-
 		return apiClient.crear(dto);
 	}
 

@@ -9,10 +9,19 @@
     <div class="card shadow-lg border-0 rounded-3">
         <div class="card-body p-4">
 
+            <div th:if="${tieneEdicionPendiente}" class="alert alert-warning d-flex align-items-center shadow-sm mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                <div>
+                    <strong>Edición en curso:</strong> Ya has enviado una solicitud de edición para este hecho que está pendiente de revisión.
+                    <br>No puedes realizar nuevos cambios hasta que la anterior sea resuelta.
+                </div>
+            </div>
+
             <form th:object="${hechoDTO}"
                   th:action="${accion == 'crear'} ? @{/hechos/crear} : @{/hechos/{id}/editar(id=${hechoDTO.id})}"
                   method="post"
                   enctype="multipart/form-data">
+
                 <p class="text-muted small">
                     Tu sugerencia será revisada por un administrador antes de ser pública.
                 </p>
@@ -74,9 +83,10 @@
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                    <a th:href="@{/}" class="btn btn-secondary rounded-pill px-4">Cancelar</a>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
-                        <span th:text="${accion == 'crear'} ? 'Enviar Sugerencia' : 'Guardar Cambios'"></span>
+                    <a th:href="@{/contributor}" class="btn btn-secondary rounded-pill px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold"
+                            th:disabled="${tieneEdicionPendiente}">
+                        <span th:text="${tieneEdicionPendiente} ? 'Edición Bloqueada' : (${accion == 'crear'} ? 'Enviar Sugerencia' : 'Guardar Cambios')"></span>
                     </button>
                 </div>
 
@@ -101,7 +111,6 @@
             let currentLng = parseFloat(lngInput.value);
 
             // CORRECCIÓN: Validar que no sea 0 (cero) ni NaN
-            // Si es 0.0, asumimos que es un hecho nuevo sin ubicación y usamos el default.
             let hasLocation = currentLat && currentLng && currentLat !== 0 && currentLng !== 0;
 
             let initialCenter = [defaultLat, defaultLng];
@@ -120,25 +129,33 @@
 
             let marker = null;
 
-            // Solo ponemos marcador si hay ubicación real (distinta de 0)
             if (hasLocation) {
                 marker = L.marker(initialCenter).addTo(map);
             }
 
             // 2. Evento Click en Mapa
-            map.on('click', function(e) {
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
+            // Solo permitimos mover el marcador si NO está bloqueada la edición
+            // (Aunque el backend protege, esto mejora la UX para que no jueguen con el mapa si no pueden guardar)
+            const isBlocked = document.querySelector('button[type="submit"]').disabled;
 
-                latInput.value = lat;
-                lngInput.value = lng;
+            if (!isBlocked) {
+                map.on('click', function(e) {
+                    const lat = e.latlng.lat;
+                    const lng = e.latlng.lng;
 
-                if (marker) {
-                    marker.setLatLng([lat, lng]);
-                } else {
-                    marker = L.marker([lat, lng]).addTo(map);
-                }
-            });
+                    latInput.value = lat;
+                    lngInput.value = lng;
+
+                    if (marker) {
+                        marker.setLatLng([lat, lng]);
+                    } else {
+                        marker = L.marker([lat, lng]).addTo(map);
+                    }
+                });
+            } else {
+                // Si está bloqueado, quitamos el puntero de mano para indicar que no es interactivo
+                document.getElementById('map-selector').style.cursor = 'default';
+            }
         });
     </script>
 </div>

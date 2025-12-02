@@ -55,7 +55,7 @@ public class HechoService {
     apiClient.crearHecho(dto, archivo);
   }
 
-  public HechoInputDTO getHechoInputDTOporId(Long id) {
+  public HechoInputDTO getHechoAgregadorDTOporId(Long id) {
     HechoDTO dtoApi = apiClient.getHechoPorId(id);
 
     HechoInputDTO dtoForm = new HechoInputDTO();
@@ -80,6 +80,29 @@ public class HechoService {
   public HechoDTO buscarHechoEnDinamica(Long id) {
     return apiClient.getHechoDinamicaPorId(id);
   }
+
+  public HechoInputDTO buscarHechoInputEnDinamica(Long id) {
+    HechoDTO dtoApi = apiClient.getHechoDinamicaPorId(id);
+
+    HechoInputDTO dtoForm = new HechoInputDTO();
+    if (dtoApi != null) {
+      dtoForm.setId(dtoApi.getId()); // .getId()
+      dtoForm.setTitulo(dtoApi.getTitulo()); // .getTitulo()
+      dtoForm.setDescripcion(dtoApi.getDescripcion());
+      dtoForm.setCategoria(dtoApi.getCategoria());
+      dtoForm.setFechaAcontecimiento(dtoApi.getFechaAcontecimiento());
+      dtoForm.setLatitud(dtoApi.getLatitud());
+      dtoForm.setLongitud(dtoApi.getLongitud());
+      dtoForm.setContenidoMultimedia(dtoApi.getContenidoMultimedia());
+      dtoForm.setCollectionHandle(dtoApi.getCollectionHandle());
+
+      if (dtoApi.getUserId() != null) {
+        dtoForm.setVisualizadorID(String.valueOf(dtoApi.getUserId()));
+      }
+    }
+    return dtoForm;
+  }
+
 
   public HechoDTO actualizar(Long id, HechoInputDTO dto, @Nullable MultipartFile archivo) {
     return apiClient.actualizarHecho(id, dto, archivo);
@@ -129,11 +152,8 @@ public class HechoService {
     return apiClient.getEdicionesPorUsuario(userId);
   }
 
-  // TODO: Revisar este método para que llame al backend si es necesario
-  public List<String> getAvailableProvinces() {
-    // Llama al endpoint del Agregador que devuelve provincias
-    // Si no tienes uno, puedes hardcodearlas temporalmente o crear el endpoint en el backend.
-    // Por ahora, para que avance, usaremos una lista fija en el Controller si no quieres tocar el backend de nuevo.
-    return List.of("Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán");
+  public HechoDTO buscarHechoCompleto(Long id) {
+    // Llama a tu API Client para traer el hecho por ID
+    return apiClient.getHechoPorId(id);
   }
 }

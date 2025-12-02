@@ -141,7 +141,7 @@ public class AdminController {
         HechoInputDTO original = new HechoInputDTO();
         try {
           if (edicion.getIdHechoOriginal() != null) {
-            original = hechoService.getHechoInputDTOporId(edicion.getIdHechoOriginal());
+            original = hechoService.buscarHechoInputEnDinamica(edicion.getIdHechoOriginal());
           }
         } catch (Exception e) {
           original.setTitulo("No disponible");
@@ -248,7 +248,6 @@ public class AdminController {
   @PostMapping("/colecciones/crear")
   public String crearColeccion(@ModelAttribute ColeccionInputDTO dto, HttpSession session, RedirectAttributes redirectAttributes) {
     dto.setVisualizadorID(getUserIdFromSession(session));
-    System.out.println("Creando colección con DTO: " + dto);
     coleccionService.crear(dto);
     redirectAttributes.addFlashAttribute("success", "Colección creada exitosamente.");
     return "redirect:/admin?tab=collections";

@@ -153,3 +153,9 @@ body {
     z-index: 99999 !important;
 }
 
+#char-counter.text-danger {
+    color: #dc3545 !important;
+}
+#char-counter.text-success {
+    color: #28a745 !important;
+}

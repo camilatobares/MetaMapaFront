@@ -47,6 +47,8 @@ function renderSidebar(currentPage) {
 }
 // --- FUNCIONES PARA RENDERIZAR MODALES  ---
 
+// ... dentro de main.js ...
+
 function openModal(modalRenderFunc, ...args) {
     const modalContainer = document.getElementById('modal-container');
     modalContainer.innerHTML = '';
@@ -56,7 +58,9 @@ function openModal(modalRenderFunc, ...args) {
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
         modalElement.addEventListener('hidden.bs.modal', () => { modalContainer.innerHTML = ''; }, { once: true });
-        return modal;
+
+        // --- CAMBIO AQUÍ: Devolver el elemento DOM, no la instancia ---
+        return modalElement;
     }
     return null;
 }
@@ -97,10 +101,42 @@ function renderTermsModal(container) {
 
 function renderFactDetailModal(container, fact) {
     const formattedDate = new Date(fact.fechaAcontecimiento).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+    const fuenteTexto = fact.nombreOrigen || 'No especificada';
+
+    // --- LÓGICA DE MULTIMEDIA ---
+    // --- LÓGICA DE MULTIMEDIA CORREGIDA ---
+    let imageHtml = '';
+    if (fact.contenidoMultimedia) {
+        let imageUrl = fact.contenidoMultimedia;
+
+        // Aseguramos que siempre apunte al backend de Fuente Dinámica (puerto 8082)
+        // Si la URL no incluye el dominio correcto, se lo forzamos.
+        const baseUrlBackend = 'http://localhost:8082';
+
+        if (!imageUrl.includes(baseUrlBackend)) {
+            // Quitamos cualquier barra inicial o 'http://...' incorrecto que pueda tener
+            imageUrl = imageUrl.replace(/^(https?:\/\/[^\/]+)?\//, '');
+            // Construimos la URL final correcta
+            imageUrl = `${baseUrlBackend}/uploads/${imageUrl}`;
+        }
+
+        imageHtml = `
+        <div class="mb-4 text-center bg-light p-2 rounded border">
+            <img src="${imageUrl}" 
+                 class="img-fluid rounded shadow-sm" 
+                 style="max-height: 350px; width: auto;" 
+                 alt="Evidencia del hecho"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div class="text-muted small mt-2" style="display:none;">
+                <i class="bi bi-exclamation-triangle me-1"></i> No se pudo cargar la imagen.
+            </div>
+        </div>`;
+    }
+// ---------------------------------------
+
     container.innerHTML = `
         <div class="modal fade" id="fact-detail-modal" tabindex="-1">
-            
-            <div class="modal-dialog modal-lg modal-dialog-centered"> 
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"> 
                 <div class="modal-content rounded-4 shadow-lg border-0">
                     <div class="modal-header bg-light border-bottom-0">
                         <div>
@@ -110,16 +146,32 @@ function renderFactDetailModal(container, fact) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-4">
+                        
 
-                        <p class="text-muted" style="overflow-wrap: break-word;">${fact.descripcion}</p>
+                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Descripción</h6>
+                        <p class="text-muted" style="white-space: pre-wrap; overflow-wrap: break-word;">${fact.descripcion}</p>
 
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6"><h6 class="fw-bold">Detalles</h6><ul class="list-unstyled"><li><strong><i class="bi bi-calendar-event me-2"></i>Fecha:</strong> ${formattedDate}</li></ul></div>
-                            <div class="col-md-6"><h6 class="fw-bold">Ubicación</h6><div id="mini-map" style="height: 150px; width: 100%; border-radius: 8px; background-color: #eee;"></div></div>
+                        <div class="row mt-4 pt-3 border-top">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3">Información Adicional</h6>
+                                <ul class="list-unstyled text-muted small">
+                                    <li class="mb-2"><strong><i class="bi bi-calendar-event me-2 text-primary"></i>Fecha:</strong> ${formattedDate}</li>
+                                    <li class="mb-2"><strong><i class="bi bi-hdd-network me-2 text-primary"></i>Fuente:</strong> ${fuenteTexto}</li>
+                                    <li><strong><i class="bi bi-person-check me-2 text-primary"></i>Consenso:</strong> ${fact.consensuado ? '<span class="text-success">Verificado</span>' : '<span class="text-warning">En revisión</span>'}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-2">Ubicación</h6>
+                                <div id="mini-map" style="height: 180px; width: 100%; border-radius: 8px; background-color: #eee; border: 1px solid #ddd;"></div>
+                            </div>
                         </div>
+                        <div class="row mt-4 pt-3 border-top">
+                            ${imageHtml}
+                        </div>                     
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -137,127 +189,162 @@ function renderRequestDetailModal(container, requestData) {
     const isEliminacion = requestType === 'Eliminación';
 
     // Campos primarios
-    const titulo = requestData.titulo || requestData.tituloPropuesto || requestData.tituloDelHechoAEliminar || `Hecho ID ${requestData.idHechoOriginal || requestData.id}`;
+    const titulo = requestData.titulo || requestData.tituloPropuesto || requestData.tituloDelHechoAEliminar || requestData.nombreHecho || `Hecho ID ${requestData.idHechoOriginal || requestData.id}`;
     const descripcionPropuesta = requestData.descripcionPropuesta || requestData.descripcion || '';
     const motivoEliminacion = requestData.motivo || '';
 
-    // --- LÓGICA DE FEEDBACK DEL ADMIN (Sugerencias / Rechazo) ---
+    // Feedback Admin
     let adminFeedbackHtml = '';
-
-    // Recuperamos el mensaje, priorizando 'sugerenciaAdmin' que viene del backend dinámico
     const mensajeAdmin = requestData.sugerenciaAdmin || requestData.detalle || '';
 
     if (requestEstado === 'ACEPTADO_CON_SUGERENCIAS') {
-        adminFeedbackHtml = `
-            <div class="alert alert-warning border-warning shadow-sm mb-3">
-                <div class="d-flex">
-                    <i class="bi bi-lightbulb-fill fs-4 me-3"></i>
-                    <div>
-                        <h6 class="alert-heading fw-bold mb-1">Sugerencia del Administrador:</h6>
-                        <p class="mb-0 text-dark">${mensajeAdmin || 'Sin detalles adicionales.'}</p>
-                    </div>
-                </div>
-            </div>`;
+        adminFeedbackHtml = `<div class="alert alert-warning border-warning shadow-sm mb-3"><div class="d-flex"><i class="bi bi-lightbulb-fill fs-4 me-3"></i><div><h6 class="alert-heading fw-bold mb-1">Sugerencia del Administrador:</h6><p class="mb-0 text-dark">${mensajeAdmin || 'Sin detalles.'}</p></div></div></div>`;
     } else if (requestEstado === 'RECHAZADO' && mensajeAdmin) {
-        adminFeedbackHtml = `
-            <div class="alert alert-danger border-danger shadow-sm mb-3">
-                <h6 class="alert-heading fw-bold"><i class="bi bi-x-circle me-2"></i>Motivo del Rechazo:</h6>
-                <p class="mb-0">${mensajeAdmin}</p>
-            </div>`;
+        adminFeedbackHtml = `<div class="alert alert-danger border-danger shadow-sm mb-3"><h6 class="alert-heading fw-bold"><i class="bi bi-x-circle me-2"></i>Motivo del Rechazo:</h6><p class="mb-0">${mensajeAdmin}</p></div>`;
     }
-    // ------------------------------------------------------------
 
-    // Campos técnicos y ubicación
-    const lat = requestData.latitud || requestData.latitudPropuesta;
-    const lon = requestData.longitud || requestData.longitudPropuesta;
-    const fechaAcontecimiento = requestData.fechaAcontecimiento || requestData.fechaAcontecimientoPropuesta;
-    const categoriaNombre = requestData.categoria || (requestData.categoriaPropuesta && requestData.categoriaPropuesta.nombre) || 'No especificada';
-    const contenidoMultimedia = requestData.contenidoMultimediaPropuesto || requestData.contenidoMultimedia;
+    // Helper para formato de fecha
+    const formatF = (dateStr) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
 
-    // --- Contenido Principal ---
     let propuestaContent = '';
+    let mapsToInit = []; // Array para guardar los mapas a inicializar
 
+    // ============================================================
+    // 1. ELIMINACIÓN
+    // ============================================================
     if (isEliminacion) {
-        propuestaContent += `<p class="fw-bold text-danger">Motivo de Eliminación:</p><p class="text-muted" style="white-space: pre-wrap;">${motivoEliminacion || 'No especificado.'}</p>`;
-        propuestaContent += `<p><strong>Título del Hecho a Eliminar:</strong> ${requestData.tituloHecho || titulo}</p>`;
-    } else {
-        propuestaContent += `<p class="fw-bold text-primary">${isEdicion ? 'Detalles de la Edición Propuesta' : 'Detalles del Hecho'}</p>`;
-        propuestaContent += `<p><strong>Descripción:</strong> <span class="text-muted" style="white-space: pre-wrap;">${descripcionPropuesta || 'Sin descripción.'}</span></p>`;
-        propuestaContent += `<hr><h6 class="fw-bold">Datos Técnicos:</h6>`;
-
-        let detallesTecnicos = `<ul class="list-unstyled small">`;
-        detallesTecnicos += `<li><strong>Título:</strong> ${titulo}</li>`;
-        detallesTecnicos += `<li><strong>Categoría:</strong> <span class="badge bg-secondary">${categoriaNombre}</span></li>`;
-
-        if (lat && lon) {
-            detallesTecnicos += `<li><strong>Ubicación:</strong> Latitud: ${lat} | Longitud: ${lon}</li>`;
-            detallesTecnicos += `<div id="request-map-container" data-lat="${lat}" data-lon="${lon}" style="height: 200px; width: 100%; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; z-index: 1;"></div>`;
-        } else {
-            detallesTecnicos += `<li><strong>Ubicación:</strong> No especificada</li>`;
-        }
-
-        if (fechaAcontecimiento) {
-            const formattedDate = new Date(fechaAcontecimiento).toLocaleString('es-ES');
-            detallesTecnicos += `<li><strong>Fecha del Acontecimiento:</strong> ${formattedDate}</li>`;
-        }
-        if (contenidoMultimedia) {
-            detallesTecnicos += `<li><strong>Contenido Multimedia:</strong>`;
-            detallesTecnicos += `
-                <div class="mt-2 p-2 border rounded bg-white text-center">
-                    <img src="${contenidoMultimedia}" 
-                         class="img-fluid rounded shadow-sm" 
-                         style="max-height: 300px; max-width: 100%;" 
-                         alt="Evidencia adjunta"
-                         onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<div class=\'text-muted small\'><i class=\'bi bi-file-earmark\'></i> ${contenidoMultimedia} (No es una imagen previsualizable)</div>');">
-                </div>`;
-            detallesTecnicos += `</li>`;
-        } else {
-            detallesTecnicos += `<li><strong>Contenido Multimedia:</strong> No se adjuntó archivo.</li>`;
-        }
-
-        if (requestData.idHechoOriginal) {
-            detallesTecnicos += `<li><strong>ID Hecho Original:</strong> ${requestData.idHechoOriginal}</li>`;
-        }
-        detallesTecnicos += `</ul>`;
-
-        propuestaContent += detallesTecnicos;
+        propuestaContent += `<p class="fw-bold text-danger">Motivo de Eliminación:</p><p class="text-muted" style="white-space: pre-wrap;">${motivoEliminacion || 'No especificado.'}</p><p><strong>Título del Hecho a Eliminar:</strong> ${requestData.nombreHecho || titulo}</p>`;
     }
+        // ============================================================
+        // 2. EDICIÓN (Aquí agregamos FECHA y TITULOS DE MAPA)
+    // ============================================================
+    else if (isEdicion) {
+        const orig = requestData.original || {};
+        const prop = requestData.propuesta ? requestData.propuesta : requestData;
 
-    // --- Estilos y Elementos de Estado ---
-    const statusClass = requestEstado === 'PENDIENTE'
-        ? 'bg-warning'
-        : (requestEstado.includes('APROBA') || requestEstado.includes('ACEPTA') ? 'bg-success' : 'bg-danger');
+        const isDiff = (a, b) => a !== b ? 'text-success fw-bold' : '';
 
-    const modalTitleText = (requestEstado === 'PENDIENTE' ? `Revisar Solicitud de ${requestType}` : `Detalle de Resolución de ${requestType}`);
+        // --- FIX 2: FECHAS ---
+        const fechaO = formatF(orig.fechaAcontecimiento);
+        const fechaP = formatF(prop.fechaAcontecimientoPropuesta);
 
-    // --- Construcción del HTML Final ---
-    const modalBodyHtml = `
-        <div id="request-modal-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0">Tipo: <span class="badge bg-primary">${requestType}</span></h6>
-                <h6 class="fw-bold mb-0">Estado: <span class="badge ${statusClass}">${requestEstado}</span></h6>
-            </div>
+        // Imágenes
+        const imgOrig = orig.contenidoMultimedia ?
+            `<div class="mt-2"><small class="fw-bold text-muted">Multimedia Actual:</small><br><img src="${orig.contenidoMultimedia}" class="img-fluid rounded shadow-sm" style="max-height: 150px;" onerror="this.style.display='none';"></div>`
+            : `<div class="mt-2 text-muted small">Sin multimedia original.</div>`;
 
-            ${adminFeedbackHtml}
+        const imgProp = prop.contenidoMultimediaPropuesto ?
+            `<div class="mt-2"><small class="fw-bold text-success">Nueva Imagen:</small><br><img src="${prop.contenidoMultimediaPropuesto}" class="img-fluid rounded shadow-sm" style="max-height: 150px;" onerror="this.style.display='none';"></div>`
+            : `<div class="mt-2 text-muted small fst-italic border-top pt-1">Sin cambios en multimedia.</div>`;
 
-            <div class="card card-body bg-light mb-3 border-0 shadow-sm">
-                ${propuestaContent}
+        propuestaContent = `
+        <div class="alert alert-warning border-0 shadow-sm mb-3">Propuesta de Edición</div>
+        <div class="row g-0 border rounded mb-3">
+            <div class="col-6 border-end bg-light p-3">
+                <h6 class="text-center text-muted small fw-bold text-uppercase mb-3">Original</h6>
+                
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Título:</small><div>${orig.titulo || '-'}</div></div>
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Descripción:</small><div class="small">${orig.descripcion || '-'}</div></div>
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Categoría:</small><div class="small">${orig.categoria || '-'}</div></div>
+                
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Fecha:</small><div class="small">${fechaO}</div></div>
+                
+                ${imgOrig}
             </div>
             
-            <small class="text-muted d-block mt-3 text-end">ID Solicitud: ${requestData.id} | Solicitante: ${requestData.solicitanteId || requestData.visualizadorEditor || 'N/A'}</small>
-        </div>
-    `;
+            <div class="col-6 bg-white p-3">
+                <h6 class="text-center text-primary small fw-bold text-uppercase mb-3">Propuesta</h6>
+                
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Título:</small><div class="${isDiff(orig.titulo, prop.tituloPropuesto)}">${prop.tituloPropuesto || orig.titulo}</div></div>
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Descripción:</small><div class="${isDiff(orig.descripcion, prop.descripcionPropuesta)} small">${prop.descripcionPropuesta || orig.descripcion}</div></div>
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Categoría:</small><div class="${isDiff(orig.categoria, prop.categoriaPropuestaNombre || prop.categoriaPropuesta)} small">${prop.categoriaPropuestaNombre || prop.categoriaPropuesta || orig.categoria}</div></div>
+                
+                <div class="mb-2"><small class="fw-bold d-block text-secondary">Fecha:</small><div class="${isDiff(fechaO, fechaP)} small">${fechaP}</div></div>
+                
+                ${imgProp}
+            </div>
+        </div>`;
+
+        // --- FIX 1: MAPAS CON TÍTULO ---
+        const latO = parseFloat(orig.latitud); const lngO = parseFloat(orig.longitud);
+        const latP = parseFloat(prop.latitudPropuesta); const lngP = parseFloat(prop.longitudPropuesta);
+
+        if ((!isNaN(latO) && !isNaN(lngO)) && (!isNaN(latP) && !isNaN(lngP)) && (latO !== latP || lngO !== lngP)) {
+            propuestaContent += `
+             <div class="row g-3">
+                <div class="col-6">
+                    <div class="card border-danger h-100">
+                        <div class="card-header bg-danger text-white small fw-bold text-center">Ubicación Original</div>
+                        <div class="card-body p-0">
+                            <div id="map-edicion-original" style="height: 200px; width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-success h-100">
+                        <div class="card-header bg-success text-white small fw-bold text-center">Ubicación Propuesta</div>
+                        <div class="card-body p-0">
+                            <div id="map-edicion-propuesta" style="height: 200px; width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+             </div>`;
+
+            mapsToInit.push({ id: 'map-edicion-original', lat: latO, lng: lngO, popup: 'Ubicación Original' });
+            mapsToInit.push({ id: 'map-edicion-propuesta', lat: latP, lng: lngP, popup: 'Nueva Ubicación' });
+        } else {
+            // Si no cambió la ubicación, mostramos uno solo o un mensaje
+            propuestaContent += `
+             <div class="alert alert-secondary d-flex align-items-center py-2 mt-3">
+                <i class="bi bi-geo-alt me-2"></i> Sin cambios en la ubicación.
+             </div>`;
+        }
+
+    }
+        // ============================================================
+        // 3. NUEVO HECHO
+    // ============================================================
+    else {
+        const lat = requestData.latitud || requestData.latitudPropuesta;
+        const lon = requestData.longitud || requestData.longitudPropuesta;
+        const fechaRaw = requestData.fechaAcontecimiento || requestData.fechaAcontecimientoPropuesta;
+        const categoriaNombre = requestData.categoria || (requestData.categoriaPropuesta && requestData.categoriaPropuesta.nombre) || 'No especificada';
+
+        propuestaContent += `<p class="fw-bold text-primary">Detalles del Hecho</p>
+        <p><strong>Descripción:</strong> ${descripcionPropuesta}</p>
+        <ul class="list-unstyled small">
+            <li><strong>Título:</strong> ${titulo}</li>
+            <li><strong>Categoría:</strong> <span class="badge bg-secondary">${categoriaNombre}</span></li>
+            <li><strong>Fecha:</strong> ${formatF(fechaRaw)}</li>
+        </ul>`;
+
+        if (lat && lon) {
+            propuestaContent += `<div class="card"><div class="card-header small fw-bold">Ubicación</div><div class="card-body p-0"><div id="request-map-container" style="height: 200px; width: 100%;"></div></div></div>`;
+            mapsToInit.push({ id: 'request-map-container', lat: parseFloat(lat), lng: parseFloat(lon), popup: 'Ubicación' });
+        }
+    }
+
+    const statusClass = requestEstado === 'PENDIENTE' ? 'bg-warning' : (requestEstado.includes('APROB') || requestEstado.includes('ACEPT') ? 'bg-success' : 'bg-danger');
 
     container.innerHTML = `
         <div class="modal fade" id="request-detail-modal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
                 <div class="modal-content rounded-4 shadow-lg border-0">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title fw-bold">${modalTitleText}</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss=\"modal\"></button>
+                        <h5 class="modal-title fw-bold">Detalle de Solicitud</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-4">
-                        ${modalBodyHtml}
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Tipo: <span class="badge bg-primary">${requestType}</span></h6>
+                            <h6 class="fw-bold mb-0">Estado: <span class="badge ${statusClass}">${requestEstado}</span></h6>
+                        </div>
+                        ${adminFeedbackHtml}
+                        <div class="card card-body bg-light mb-3 border-0 shadow-sm">${propuestaContent}</div>
+                        <small class="text-muted d-block mt-3 text-end">ID Solicitud: ${requestData.id}</small>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
@@ -265,6 +352,23 @@ function renderRequestDetailModal(container, requestData) {
                 </div>
             </div>
         </div>`;
+
+    // --- INICIALIZACIÓN DE MAPAS ---
+    if (mapsToInit.length > 0) {
+        // Esperamos un poco a que el modal se renderice en el DOM
+        setTimeout(() => {
+            mapsToInit.forEach(m => {
+                const el = document.getElementById(m.id);
+                if(el) {
+                    const map = L.map(m.id).setView([m.lat, m.lng], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    L.marker([m.lat, m.lng]).addTo(map).bindPopup(m.popup);
+                    // Forzar redraw
+                    setTimeout(() => { map.invalidateSize(); }, 200);
+                }
+            });
+        }, 500); // Delay para asegurar que el modal esté visible
+    }
 }
 
 // --- INICIALIZACIÓN ---

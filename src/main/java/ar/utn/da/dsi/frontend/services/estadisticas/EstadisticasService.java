@@ -40,7 +40,9 @@ public class EstadisticasService {
 
   // Métrica 5: Ratio de solicitudes spam
   public SolicitudSpamDTO getSolicitudesSpamRatio() {
-    return apiClient.getSolicitudesSpamRatio();
+    SolicitudSpamDTO so = apiClient.getSolicitudesSpamRatio();
+    System.out.println("DEBUG: Servicio Estadísticas - Solicitudes Spam Ratio: " + so);
+    return so;
   }
 
   // --- Métodos para la exportación (Devuelven URLs) ---

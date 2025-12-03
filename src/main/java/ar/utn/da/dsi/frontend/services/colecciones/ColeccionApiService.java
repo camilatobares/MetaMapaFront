@@ -22,7 +22,9 @@ public class ColeccionApiService {
 	}
 
 	public List<ColeccionOutputDTO> obtenerTodas() {
-		return apiClientService.getListPublic(coleccionesApiUrl, ColeccionOutputDTO.class);
+		List<ColeccionOutputDTO> ap = apiClientService.getListPublic(coleccionesApiUrl, ColeccionOutputDTO.class);
+		System.out.println("DEBUG: Colecciones obtenidas: " + ap);
+		return ap;
 	}
 
 	public ColeccionOutputDTO obtenerPorId(String id) {

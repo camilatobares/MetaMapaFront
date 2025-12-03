@@ -420,7 +420,8 @@ public class AdminController {
   public String mostrarEstadisticas(@RequestParam(required = false) String handleIdColeccion, @RequestParam(required = false) String categoriaProvincia, @RequestParam(required = false) String categoriaHora, Model model) {
     try { model.addAttribute("colecciones", coleccionService.obtenerTodas()); } catch (Exception e) { model.addAttribute("colecciones", List.of()); }
     try { model.addAttribute("categorias", hechoService.getAvailableCategories()); } catch (Exception e) { model.addAttribute("categorias", List.of()); }
-    try { model.addAttribute("distribucionCategorias", estadisticasService.getDistribucionCategorias()); model.addAttribute("spamRatio", estadisticasService.getSolicitudesSpamRatio()); } catch (Exception e) {}
+    try { model.addAttribute("distribucionCategorias", estadisticasService.getDistribucionCategorias()); } catch (Exception e) { model.addAttribute("distribucionCategorias", List.of());}
+    try { model.addAttribute("spamRatio", estadisticasService.getSolicitudesSpamRatio()); } catch (Exception e) {model.addAttribute("spamRatio", List.of());}
 
     if (handleIdColeccion != null && !handleIdColeccion.isEmpty()) {
       try { model.addAttribute("resultadoProvinciaColeccion", estadisticasService.getDistribucionProvinciasPorColeccion(handleIdColeccion)); model.addAttribute("handleIdColeccionSeleccionada", handleIdColeccion); } catch (Exception e) {}

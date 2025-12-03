@@ -5,7 +5,7 @@
 
 <main class="container-fluid p-4 animate__animated animate__fadeIn" id="main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold mb-0 text-primary" th:text="${titulo}"></h3>
+        <h3 class="fw-bold mb-0 text-primary" th:text="${titulo}">Estadísticas</h3>
         <a th:href="@{/admin}" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold">
             ← Volver al Panel
         </a>
@@ -14,49 +14,54 @@
     <div class="card shadow-lg border-0 rounded-3">
         <div class="card-body p-4">
 
-            <!-- DASHBOARD: MÉTRICAS GLOBALES (2 y 5) -->
             <h4 class="fw-bold text-primary mb-3">Métricas Globales</h4>
             <div class="row g-4 mb-5">
 
-                <!-- Métrica 2: Distribución de Categorías -->
                 <div class="col-lg-6">
                     <div class="card card-body shadow-sm h-100 bg-white">
                         <h5 class="fw-bold text-secondary mb-3">Distribución de Hechos por Categoría</h5>
-                        <div th:if="${distribucionCategorias != null and #lists.size(distribucionCategorias.distribucion) > 0}">
+
+                        <div th:if="${distribucionCategorias?.distribucion != null and not #lists.isEmpty(distribucionCategorias.distribucion)}">
                             <canvas id="categoriaDoughnutChart" style="max-height: 350px;"></canvas>
                         </div>
-                        <div th:unless="${distribucionCategorias != null and #lists.size(distribucionCategorias.distribucion) > 0}" class="text-center text-muted p-5">
+
+                        <div th:unless="${distribucionCategorias?.distribucion != null and not #lists.isEmpty(distribucionCategorias.distribucion)}"
+                             class="text-center text-muted p-5">
+                            <i class="bi bi-pie-chart fs-1 d-block mb-2"></i>
                             No hay datos para el gráfico de Categorías.
                         </div>
                     </div>
                 </div>
 
-                <!-- Métrica 5: Solicitudes de Spam -->
                 <div class="col-lg-6">
                     <div class="card card-body shadow-sm h-100 bg-white">
                         <h5 class="fw-bold text-secondary mb-3">Ratio de Solicitudes Spam (vs Total)</h5>
+
                         <div th:if="${spamRatio != null and spamRatio.totalSolicitudes != null and spamRatio.totalSolicitudes > 0}">
                             <canvas id="spamDoughnutChart" style="max-height: 350px;"></canvas>
-                            <p class="text-center small text-muted mt-3">Total de solicitudes: <span th:text="${spamRatio.totalSolicitudes}"></span></p>
+                            <p class="text-center small text-muted mt-3">
+                                Total de solicitudes procesadas:
+                                <strong th:text="${spamRatio.totalSolicitudes}">0</strong>
+                            </p>
                         </div>
-                        <div th:unless="${spamRatio != null and spamRatio.totalSolicitudes != null and spamRatio.totalSolicitudes > 0}" class="text-center text-muted p-5">
-                            No hay datos para el gráfico de Spam.
+
+                        <div th:unless="${spamRatio != null and spamRatio.totalSolicitudes != null and spamRatio.totalSolicitudes > 0}"
+                             class="text-center text-muted p-5">
+                            <i class="bi bi-shield-x fs-1 d-block mb-2"></i>
+                            No hay suficientes datos de solicitudes para graficar.
                         </div>
                     </div>
                 </div>
 
             </div>
-            <!-- FIN MÉTRICAS GLOBALES -->
-
-            <!-- DASHBOARD: MÉTICAS DINÁMICAS (1, 3 y 4) -->
             <h4 class="fw-bold text-primary mb-3 mt-4 border-top pt-4">Métricas dinámicas</h4>
 
             <div class="row g-4">
 
-                <!-- DASHBOARD 1: PROVINCIA CON MÁS HECHOS POR COLECCIÓN -->
                 <div class="col-12">
                     <div class="card shadow-sm border-0 rounded-3 p-3 bg-white">
-                        <h5 class="fw-bold text-info mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Distribución  de hechos por Provincia según una Colección</h5>
+                        <h5 class="fw-bold text-info mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Distribución de hechos por Provincia según una Colección</h5>
+
                         <form th:action="@{/admin/estadisticas}" method="get" class="row g-3">
                             <input type="hidden" name="categoriaProvincia" th:value="${categoriaProvinciaSeleccionada}" th:if="${categoriaProvinciaSeleccionada}">
                             <input type="hidden" name="categoriaHora" th:value="${categoriaHoraSeleccionada}" th:if="${categoriaHoraSeleccionada}">
@@ -76,20 +81,22 @@
                             </div>
                         </form>
 
-                        <div th:if="${resultadoProvinciaColeccion != null and #lists.size(resultadoProvinciaColeccion.distribucion) > 0}" class="mt-3">
+                        <div th:if="${resultadoProvinciaColeccion?.distribucion != null and not #lists.isEmpty(resultadoProvinciaColeccion.distribucion)}" class="mt-3">
                             <div class="card card-body bg-light">
                                 <canvas id="provinciaColeccionBarChart" style="max-height: 450px;"></canvas>
                             </div>
                         </div>
-                        <div th:if="${handleIdColeccionSeleccionada != null and (resultadoProvinciaColeccion == null or #lists.size(resultadoProvinciaColeccion.distribucion) == 0)}" class="alert alert-warning mt-3">
+
+                        <div th:if="${handleIdColeccionSeleccionada != null and (resultadoProvinciaColeccion?.distribucion == null or #lists.isEmpty(resultadoProvinciaColeccion.distribucion))}"
+                             class="alert alert-warning mt-3">
                             <h6 class="alert-heading fw-bold mb-1">Sin Resultados:</h6>
-                            <p class="mb-0">No se encontraron datos de distribución para esta colección o la consulta falló.</p>
+                            <p class="mb-0">No se encontraron datos de distribución para esta colección.</p>
                         </div>
+
                         <div th:if="${errorProvinciaColeccion}" class="alert alert-danger mt-3" th:text="${errorProvinciaColeccion}"></div>
                     </div>
                 </div>
 
-                <!-- DASHBOARD 3: PROVINCIA CON MÁS HECHOS DE UNA CATEGORÍA -->
                 <div class="col-12">
                     <div class="card shadow-sm border-0 rounded-3 p-3 bg-white">
                         <h5 class="fw-bold text-success mb-3"><i class="bi bi-map-fill me-2"></i>Distribución de hechos por Provincia según una Categoría</h5>
@@ -112,20 +119,22 @@
                             </div>
                         </form>
 
-                        <div th:if="${resultadoProvinciaCategoria != null and #lists.size(resultadoProvinciaCategoria.distribucion) > 0}" class="mt-3">
+                        <div th:if="${resultadoProvinciaCategoria?.distribucion != null and not #lists.isEmpty(resultadoProvinciaCategoria.distribucion)}" class="mt-3">
                             <div class="card card-body bg-light">
                                 <canvas id="provinciaCategoriaBarChart" style="max-height: 450px;"></canvas>
                             </div>
                         </div>
-                        <div th:if="${categoriaProvinciaSeleccionada != null and (resultadoProvinciaCategoria == null or #lists.size(resultadoProvinciaCategoria.distribucion) == 0)}" class="alert alert-warning mt-3">
+
+                        <div th:if="${categoriaProvinciaSeleccionada != null and (resultadoProvinciaCategoria?.distribucion == null or #lists.isEmpty(resultadoProvinciaCategoria.distribucion))}"
+                             class="alert alert-warning mt-3">
                             <h6 class="alert-heading fw-bold mb-1">Sin Resultados:</h6>
-                            <p class="mb-0">No se encontraron datos de distribución para esta categoría o la consulta falló.</p>
+                            <p class="mb-0">No se encontraron datos para esta categoría.</p>
                         </div>
+
                         <div th:if="${errorProvinciaCategoria}" class="alert alert-danger mt-3" th:text="${errorProvinciaCategoria}"></div>
                     </div>
                 </div>
 
-                <!-- DASHBOARD 4: HORA CON MÁS HECHOS POR CATEGORÍA -->
                 <div class="col-12">
                     <div class="card shadow-sm border-0 rounded-3 p-3 bg-white">
                         <h5 class="fw-bold text-warning mb-3"><i class="bi bi-clock-fill me-2"></i>Distribución de hechos por Hora según una Categoría</h5>
@@ -148,22 +157,23 @@
                             </div>
                         </form>
 
-                        <div th:if="${resultadoHoraCategoria != null and #lists.size(resultadoHoraCategoria.distribucion) > 0}" class="mt-3">
+                        <div th:if="${resultadoHoraCategoria?.distribucion != null and not #lists.isEmpty(resultadoHoraCategoria.distribucion)}" class="mt-3">
                             <div class="card card-body bg-light">
                                 <canvas id="horaLineChart" style="max-height: 450px;"></canvas>
                             </div>
                         </div>
-                        <div th:if="${categoriaHoraSeleccionada != null and (resultadoHoraCategoria == null or #lists.size(resultadoHoraCategoria.distribucion) == 0)}" class="alert alert-warning mt-3">
+
+                        <div th:if="${categoriaHoraSeleccionada != null and (resultadoHoraCategoria?.distribucion == null or #lists.isEmpty(resultadoHoraCategoria.distribucion))}"
+                             class="alert alert-warning mt-3">
                             <h6 class="alert-heading fw-bold mb-1">Sin Resultados:</h6>
-                            <p class="mb-0">No se encontraron datos de distribución para esta categoría o la consulta falló.</p>
+                            <p class="mb-0">No hay datos horarios para esta categoría.</p>
                         </div>
+
                         <div th:if="${errorHoraCategoria}" class="alert alert-danger mt-3" th:text="${errorHoraCategoria}"></div>
                     </div>
                 </div>
 
             </div>
-            <!-- FIN DASHBOARDS DINÁMICOS -->
-
             <h4 class="fw-bold text-primary mb-3 mt-4 border-top pt-4">Exportación de Reportes</h4>
             <div class="row g-3 mb-5">
                 <div class="col-md-6 col-lg-4">
@@ -204,229 +214,172 @@
 <div id="page-scripts">
     <script th:inline="javascript">
         /*<![CDATA[*/
-        // Datos para Gráficos
-        const distribucionCategorias = [[${distribucionCategorias}]];
-        const spamRatio = [[${spamRatio}]];
-        const resultadoProvinciaColeccion = [[${resultadoProvinciaColeccion}]];
-        const resultadoProvinciaCategoria = [[${resultadoProvinciaCategoria}]];
-        const resultadoHoraCategoria = [[${resultadoHoraCategoria}]];
+        // Inyección de datos de Thymeleaf a JS con protección de nulos
+        const distribucionCategorias = /*[[${distribucionCategorias}]]*/ {};
+        const spamRatio = /*[[${spamRatio}]]*/ {};
+        const resultadoProvinciaColeccion = /*[[${resultadoProvinciaColeccion}]]*/ {};
+        const resultadoProvinciaCategoria = /*[[${resultadoProvinciaCategoria}]]*/ {};
+        const resultadoHoraCategoria = /*[[${resultadoHoraCategoria}]]*/ {};
         /*]]>*/
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            renderSidebar('admin');
+            // Asegurar que renderSidebar exista (si no está en main.js, comentar esta línea)
+            if (typeof renderSidebar === 'function') {
+                renderSidebar('admin');
+            }
 
-            // Colores base para los gráficos
-            const CHART_COLORS = {
-                primary: 'rgb(0, 128, 128)', // Teal/Primary
-                secondary: 'rgb(108, 117, 125)', // Gray/Secondary
-                info: 'rgb(23, 162, 184)', // Info
-                success: 'rgb(40, 167, 69)', // Success
-                warning: 'rgb(255, 193, 7)', // Warning
-                danger: 'rgb(220, 53, 69)', // Danger
-                lightGray: 'rgb(200, 200, 200)'
+            // Colores base
+            const COLORS = {
+                primary: 'rgba(0, 128, 128, 0.7)', // Teal
+                primaryBorder: 'rgba(0, 128, 128, 1)',
+                secondary: 'rgba(108, 117, 125, 0.7)',
+                info: 'rgba(23, 162, 184, 0.7)',
+                success: 'rgba(40, 167, 69, 0.7)',
+                warning: 'rgba(255, 193, 7, 0.7)',
+                danger: 'rgba(220, 53, 69, 0.7)',
+                dangerBorder: 'rgba(220, 53, 69, 1)'
             };
 
-            // Función para generar un array de colores semi-transparentes
-            function generateBackgroundColors(count, baseColor) {
-                const colors = [];
-                for(let i = 0; i < count; i++) {
-                    // Crea variación ligera de la opacidad o tono si es necesario
-                    colors.push(`rgba(${baseColor.substring(4, baseColor.length - 1)}, 0.6)`);
+            const PALETTE = [
+                '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                '#858796', '#5a5c69', '#00aba9', '#2b5797', '#e8c3b9'
+            ];
+
+            // --- GRÁFICO 1: Categorías (Doughnut) ---
+            if (distribucionCategorias && distribucionCategorias.distribucion && distribucionCategorias.distribucion.length > 0) {
+                const ctxCat = document.getElementById('categoriaDoughnutChart');
+                if (ctxCat) {
+                    new Chart(ctxCat, {
+                        type: 'doughnut',
+                        data: {
+                            labels: distribucionCategorias.distribucion.map(d => d.categoria),
+                            datasets: [{
+                                data: distribucionCategorias.distribucion.map(d => d.cantidadHechos),
+                                backgroundColor: PALETTE,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: { responsive: true, plugins: { legend: { position: 'right' } } }
+                    });
                 }
-                return colors;
             }
 
-            // --- FUNCIÓN GENÉRICA DE DIBUJO ---
-            function drawDoughnutChart(ctxId, labels, data, title, colors) {
-                new Chart(document.getElementById(ctxId).getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: colors,
-                            borderColor: '#fff',
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                            },
-                            title: {
-                                display: true,
-                                text: title,
-                                font: { size: 14, weight: 'bold' }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed !== null) {
-                                            label += new Intl.NumberFormat('es-AR').format(context.parsed);
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            function drawBarChart(ctxId, labels, data, title, color) {
-                new Chart(document.getElementById(ctxId).getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Cantidad de Hechos',
-                            data: data,
-                            backgroundColor: generateBackgroundColors(labels.length, color),
-                            borderColor: color,
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y', // Hace las barras horizontales para nombres largos
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false },
-                            title: {
-                                display: true,
-                                text: title,
-                                font: { size: 14, weight: 'bold' }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Conteo de Hechos'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            function drawLineChart(ctxId, labels, data, title, color) {
-                new Chart(document.getElementById(ctxId).getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Frecuencia de Hechos',
-                            data: data,
-                            borderColor: color,
-                            backgroundColor: `rgba(${color.substring(4, color.length - 1)}, 0.2)`,
-                            fill: true,
-                            tension: 0.1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false },
-                            title: {
-                                display: true,
-                                text: title,
-                                font: { size: 14, weight: 'bold' }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Hora del Día (0h - 23h)'
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Cantidad de Hechos'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-
-            // --- Métrica 2: Distribución de Categorías (Gráfico de Torta) ---
-            if (distribucionCategorias && distribucionCategorias.distribucion.length > 0) {
-                const labels = distribucionCategorias.distribucion.map(d => d.categoria);
-                const data = distribucionCategorias.distribucion.map(d => d.cantidadHechos);
-
-                // Generar colores variados
-                const backgroundColors = [
-                    CHART_COLORS.primary, CHART_COLORS.success, CHART_COLORS.warning, CHART_COLORS.danger,
-                    CHART_COLORS.info, CHART_COLORS.secondary, CHART_COLORS.lightGray
-                ];
-
-                drawDoughnutChart('categoriaDoughnutChart', labels, data, 'Hechos por Categoría (Global)', backgroundColors);
-            }
-
-            // --- Métrica 5: Ratio de Spam (Gráfico de Dona) ---
+            // --- GRÁFICO 2: Spam (Doughnut) ---
+            // CAMBIO IMPORTANTE AQUÍ: Calculamos el spamCount basándonos en el porcentaje
             if (spamRatio && spamRatio.totalSolicitudes > 0) {
-                const spamCount = spamRatio.cantidadSpam;
-                const nonSpamCount = spamRatio.totalSolicitudes - spamCount;
+                const total = spamRatio.totalSolicitudes;
+                // El backend manda porcentaje y total, calculamos la cantidad absoluta de spam
+                const spamCount = Math.round((total * spamRatio.porcentaje) / 100);
+                const validCount = total - spamCount;
 
-                const labels = ['Spam Detectado', 'No Spam'];
-                const data = [spamCount, nonSpamCount];
-                const colors = [CHART_COLORS.danger, CHART_COLORS.success]; // Rojo para Spam, Verde para No Spam
-
-                drawDoughnutChart('spamDoughnutChart', labels, data, 'Proporción de Solicitudes de Eliminación', colors);
+                const ctxSpam = document.getElementById('spamDoughnutChart');
+                if (ctxSpam) {
+                    new Chart(ctxSpam, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Spam Detectado', 'Solicitudes Válidas'],
+                            datasets: [{
+                                data: [spamCount, validCount],
+                                backgroundColor: [COLORS.danger, COLORS.success],
+                                borderColor: [COLORS.dangerBorder, '#fff'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: { display: true, text: `Tasa de Spam: ${spamRatio.porcentaje}%` }
+                            }
+                        }
+                    });
+                }
             }
 
-            // --- Métrica 1: Distribución de Provincias (Colección) (Gráfico de Barras) ---
-            if (resultadoProvinciaColeccion && resultadoProvinciaColeccion.distribucion.length > 0) {
-                const dataOrdenada = resultadoProvinciaColeccion.distribucion
-                    .sort((a, b) => b.cantidadHechos - a.cantidadHechos);
+            // --- GRÁFICO 3: Provincia por Colección (Bar) ---
+            if (resultadoProvinciaColeccion && resultadoProvinciaColeccion.distribucion && resultadoProvinciaColeccion.distribucion.length > 0) {
+                const data = resultadoProvinciaColeccion.distribucion.sort((a, b) => b.cantidadHechos - a.cantidadHechos);
+                const ctxProvCol = document.getElementById('provinciaColeccionBarChart');
 
-                const labels = dataOrdenada.map(d => d.provincia);
-                const data = dataOrdenada.map(d => d.cantidadHechos);
-
-                drawBarChart('provinciaColeccionBarChart', labels, data,
-                    `Distribución de Hechos en Colección ${resultadoProvinciaColeccion.handleID}`,
-                    CHART_COLORS.info);
+                if (ctxProvCol) {
+                    new Chart(ctxProvCol, {
+                        type: 'bar',
+                        data: {
+                            labels: data.map(d => d.provincia),
+                            datasets: [{
+                                label: 'Hechos',
+                                data: data.map(d => d.cantidadHechos),
+                                backgroundColor: COLORS.info,
+                                borderColor: COLORS.primaryBorder,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true
+                        }
+                    });
+                }
             }
 
-            // --- Métrica 3: Distribución de Provincias (Categoría) (Gráfico de Barras) ---
-            if (resultadoProvinciaCategoria && resultadoProvinciaCategoria.distribucion.length > 0) {
-                const dataOrdenada = resultadoProvinciaCategoria.distribucion
-                    .sort((a, b) => b.cantidadHechos - a.cantidadHechos);
+            // --- GRÁFICO 4: Provincia por Categoría (Bar) ---
+            if (resultadoProvinciaCategoria && resultadoProvinciaCategoria.distribucion && resultadoProvinciaCategoria.distribucion.length > 0) {
+                const data = resultadoProvinciaCategoria.distribucion.sort((a, b) => b.cantidadHechos - a.cantidadHechos);
+                const ctxProvCat = document.getElementById('provinciaCategoriaBarChart');
 
-                const labels = dataOrdenada.map(d => d.provincia);
-                const data = dataOrdenada.map(d => d.cantidadHechos);
-
-                drawBarChart('provinciaCategoriaBarChart', labels, data,
-                    `Distribución de Hechos de Categoría '${resultadoProvinciaCategoria.categoria}'`,
-                    CHART_COLORS.success);
+                if (ctxProvCat) {
+                    new Chart(ctxProvCat, {
+                        type: 'bar',
+                        data: {
+                            labels: data.map(d => d.provincia),
+                            datasets: [{
+                                label: 'Hechos',
+                                data: data.map(d => d.cantidadHechos),
+                                backgroundColor: COLORS.success,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true
+                        }
+                    });
+                }
             }
 
-            // --- Métrica 4: Distribución Horaria (Categoría) (Gráfico de Línea) ---
-            if (resultadoHoraCategoria && resultadoHoraCategoria.distribucion.length > 0) {
-                // Generar los 24 labels de 0 a 23
-                const horas = Array.from({length: 24}, (_, i) => i);
+            // --- GRÁFICO 5: Hora por Categoría (Line) ---
+            if (resultadoHoraCategoria && resultadoHoraCategoria.distribucion && resultadoHoraCategoria.distribucion.length > 0) {
+                const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+                // Mapear datos a las 24 horas (llenar huecos con 0)
+                const mapDatos = new Map(resultadoHoraCategoria.distribucion.map(i => [parseInt(i.hora), i.cantidadHechos]));
+                const dataSeries = Array.from({length: 24}, (_, i) => mapDatos.get(i) || 0);
 
-                // Crear un mapa para buscar rápidamente la cantidad por hora
-                const conteoMap = new Map(resultadoHoraCategoria.distribucion.map(item => [item.hora, item.cantidadHechos]));
-
-                // Llenar el array de datos asegurando que haya 24 puntos (0 si no hay datos)
-                const data = horas.map(h => conteoMap.get(h) || 0);
-
-                drawLineChart('horaLineChart', horas, data,
-                    `Actividad Horaria de Categoría '${resultadoHoraCategoria.categoria}'`,
-                    CHART_COLORS.warning);
+                const ctxHora = document.getElementById('horaLineChart');
+                if (ctxHora) {
+                    new Chart(ctxHora, {
+                        type: 'line',
+                        data: {
+                            labels: horasLabels,
+                            datasets: [{
+                                label: 'Frecuencia',
+                                data: dataSeries,
+                                borderColor: '#ffc107',
+                                backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                                fill: true,
+                                tension: 0.3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                            }
+                        }
+                    });
+                }
             }
         });
     </script>

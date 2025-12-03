@@ -178,6 +178,7 @@
                 /*<![CDATA[*/
                 const allCollections = /*[[${colecciones}]]*/ [];
                 const allRequests = /*[[${solicitudes}]]*/ [];
+                const GLOBAL_BACKEND_URL = /*[[${backendImagesUrl}]]*/ 'http://localhost:8082';
                 /*]]>*/
             </script>
             <script>
@@ -396,7 +397,7 @@
                                         let imgUrl = data.contenidoMultimedia;
                                         if (imgUrl && !imgUrl.startsWith('http')) {
                                             // Apuntamos al puerto 8082 donde configuramos el ResourceHandler
-                                            imgUrl = `http://localhost:8082/uploads/${imgUrl}`;
+                                            imgUrl = `${GLOBAL_BACKEND_URL}/uploads/${imgUrl}`;
                                         }
                                         // -----------------------------------
 

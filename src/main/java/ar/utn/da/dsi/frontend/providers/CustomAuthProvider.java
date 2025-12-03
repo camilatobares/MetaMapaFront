@@ -19,7 +19,6 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class CustomAuthProvider implements AuthenticationProvider {
@@ -79,9 +78,8 @@ public class CustomAuthProvider implements AuthenticationProvider {
 			Throwable cause = e.getCause(); // Desempaquetamos el error
 
 			// 1. RATE LIMIT (429) -> BANEO
-			if (cause instanceof WebClientResponseException.TooManyRequests) {
-				WebClientResponseException.TooManyRequests ex = (WebClientResponseException.TooManyRequests) cause;
-				try {
+			if (cause instanceof WebClientResponseException.TooManyRequests ex) {
+        try {
 					// Intentamos leer el JSON {"retryAfter": 60}
 					String responseBody = ex.getResponseBodyAsString();
 					long seconds = objectMapper.readTree(responseBody).get("retryAfter").asLong();

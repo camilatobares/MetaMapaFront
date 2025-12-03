@@ -163,8 +163,8 @@ public class HechoApiService {
    * Llama al backend para obtener los hechos de un usuario.
    * (Usado por ContributorController para el panel "Mis Hechos")
    */
-  public List<HechoDTO> getHechosPorUsuario(String userId) {
-    String url = dinamicaUrl + "/hechos/usuario/" + userId;
+  public List<HechoDTO> getHechosPorUsuario() {
+    String url = dinamicaUrl + "/hechos/usuario/mis-hechos";
 
     // USAMOS executeWithToken PARA INYECTAR EL TOKEN AUTOMÁTICAMENTE
     return apiClientService.executeWithToken(accessToken ->
@@ -474,8 +474,8 @@ public class HechoApiService {
     );
   }
 
-  public List<EdicionOutputDTO> getEdicionesPorUsuario(String userId) {
-    String url = dinamicaUrl + "/ediciones/usuario/" + userId;
+  public List<EdicionOutputDTO> getEdicionesPorUsuario() {
+    String url = dinamicaUrl + "/ediciones/usuario/mis-ediciones";
 
     return apiClientService.executeWithToken(accessToken ->
         apiClientService.getWebClient().get()

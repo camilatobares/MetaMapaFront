@@ -35,8 +35,8 @@ public class HechoService {
     return apiClient.getHechosDeColeccion(handleId, modo, fechaDesde, fechaHasta, categoria, titulo, page);
   }
 
-  public List<HechoDTO> buscarHechosPorUsuario(String userId) {
-    return apiClient.getHechosPorUsuario(userId);
+  public List<HechoDTO> buscarHechosPorUsuario() {
+    return apiClient.getHechosPorUsuario();
   }
 
   public List<String> getAvailableCategories() {
@@ -148,8 +148,8 @@ public class HechoService {
     return apiClient.buscarEdicionPorId(id);
   }
 
-  public List<EdicionOutputDTO> buscarEdicionesPorUsuario(String userId) {
-    return apiClient.getEdicionesPorUsuario(userId);
+  public List<EdicionOutputDTO> buscarEdicionesPorUsuario() {
+    return apiClient.getEdicionesPorUsuario();
   }
 
   public HechoDTO buscarHechoCompleto(Long id) {

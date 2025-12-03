@@ -109,14 +109,13 @@ function renderFactDetailModal(container, fact) {
     if (fact.contenidoMultimedia) {
         let imageUrl = fact.contenidoMultimedia;
 
-        // Aseguramos que siempre apunte al backend de Fuente Dinámica (puerto 8082)
-        // Si la URL no incluye el dominio correcto, se lo forzamos.
-        const baseUrlBackend = 'http://localhost:8082';
+        const baseUrlBackend = (typeof GLOBAL_BACKEND_URL !== 'undefined')
+            ? GLOBAL_BACKEND_URL
+            : 'http://localhost:8082';
 
-        if (!imageUrl.includes(baseUrlBackend)) {
-            // Quitamos cualquier barra inicial o 'http://...' incorrecto que pueda tener
-            imageUrl = imageUrl.replace(/^(https?:\/\/[^\/]+)?\//, '');
-            // Construimos la URL final correcta
+        if (!imageUrl.includes('http')) {
+            // Quitamos barras iniciales extra si las tiene
+            imageUrl = imageUrl.replace(/^\//, '');
             imageUrl = `${baseUrlBackend}/uploads/${imageUrl}`;
         }
 

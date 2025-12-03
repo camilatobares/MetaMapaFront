@@ -10,6 +10,7 @@ import ar.utn.da.dsi.frontend.services.hechos.HechoService;
 import ar.utn.da.dsi.frontend.services.solicitudes.SolicitudService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -28,6 +29,9 @@ import java.util.Map;
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+
+  @Value("${dinamica.service.url}")
+  private String dinamicaUrl;
 
   private final ColeccionService coleccionService;
   private final SolicitudService solicitudService;
@@ -113,6 +117,9 @@ public class AdminController {
       model.addAttribute("consensusLabels", null);
       model.addAttribute("availableSources", null);
     }
+
+    String baseUrl = dinamicaUrl.replace("/dinamica", "");
+    model.addAttribute("backendImagesUrl", baseUrl);
 
     model.addAttribute("titulo", "Panel de Administración");
     return "admin";

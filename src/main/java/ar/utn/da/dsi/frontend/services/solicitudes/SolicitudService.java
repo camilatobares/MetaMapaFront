@@ -18,9 +18,9 @@ public class SolicitudService {
 		this.apiClient = apiClient;
 	}
 
-	public List<SolicitudEliminacionOutputDTO> obtenerTodas(String visualizadorId) {
+	public List<SolicitudEliminacionOutputDTO> obtenerTodas() {
 		// Aquí podrías agregar lógica de cacheo o filtrado en el futuro
-		return apiClient.obtenerTodas(visualizadorId);
+		return apiClient.obtenerTodas();
 	}
 
 	public SolicitudEliminacionOutputDTO obtenerPorId(Integer id, String visualizadorId) {

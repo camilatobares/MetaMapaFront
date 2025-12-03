@@ -36,7 +36,7 @@ public class SolicitudApiClientService {
 		);
 	}
 
-	public List<SolicitudEliminacionOutputDTO> obtenerTodas(String visualizadorId) {
+	public List<SolicitudEliminacionOutputDTO> obtenerTodas() {
 		String url = solicitudesApiUrl + "/mis-solicitudes";
 		return apiClientService.executeWithToken(accessToken ->
 				apiClientService.getWebClient().get()
